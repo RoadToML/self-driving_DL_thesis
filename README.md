@@ -6,7 +6,7 @@ i.e. If the dirver is swaying within their lane, not slowing down for a intersec
 
 Stuff to do:
 
-+ init CARLA environment
++ ~~init CARLA environment~~
 + add agents in CARLA
 + Collect training data from CARLA
 + Create appropriate R-CNN model (or other)
