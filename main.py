@@ -10,7 +10,7 @@ print('attempting to connect...') # DEBUG
 client = Client('localhost', 2000, worker_threads = 12)
 client.set_timeout(10.0)
 
-client.load_world('/Game/Carla/ExportedMaps/scenario_1_only_bends')
+client.load_world('/Game/Carla/ExportedMaps/only_bends_v2')
 print('connected!') # DEBUG
 
 world = client.get_world()
