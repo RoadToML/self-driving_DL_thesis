@@ -28,3 +28,6 @@ print('spawning car') # DEBUG
 
 vehicle_actor = world.spawn_actor(vehicle_bp, point)
 print('DONE') # DEBUG
+
+time.sleep(2)
+vehicle_actor.apply_control(carla.VehicleControl(throttle=1.0, steer=-1.0))
