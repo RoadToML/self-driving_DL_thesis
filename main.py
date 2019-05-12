@@ -14,8 +14,20 @@ client.load_world('/Game/Carla/Maps/single_left_bend')
 print('connected!') # DEBUG
 
 world = client.get_world()
-
+# bp of all actors
 blueprint_lib = world.get_blueprint_library()
+
+# #################################################
+# ADD SPEED LIMIT SIGN
+# actor_list = world.get_actors()
+# actor_transform = actor_list.filter('traffic.speed_limit.*')
+
+# speed_sign_bp = blueprint_lib.find('static.prop.streetsign01')
+# speed_sign_50_spawn = world.spawn_actor(speed_sign_bp, actor_transform[0])
+
+
+# #################################################
+
 vehicle_bp = blueprint_lib.find('vehicle.audi.tt')
 
 # adding spawn point for car as per coordinates on unreal engine
@@ -29,9 +41,16 @@ time.sleep(2)
 print(vehicle_actor.get_location())
 print('DONE') # DEBUG
 
+# #################################################
+# Add Camera 
+camera_bp = blueprint_lib.find('sensor.camera.rgb')
+camera = world.spawn_actor(camera_bp, spawn_points[0], attach_to = vehicle_actor)
+camera.listen(lambda image: image.save_to_disk('output/%06d.png' %image.frame_number))
+
+# #################################################
+
 time.sleep(2)
 vehicle_actor.set_simulate_physics(True)
-# vehicle_actor.apply_control(carla.VehicleControl(throttle=1.0, steer=-1.0))
 
 location = vehicle_actor.get_location()
 transform = vehicle_actor.get_transform()
