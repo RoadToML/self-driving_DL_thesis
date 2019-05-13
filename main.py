@@ -44,7 +44,13 @@ print('DONE') # DEBUG
 # #################################################
 # Add Camera 
 camera_bp = blueprint_lib.find('sensor.camera.rgb')
-camera = world.spawn_actor(camera_bp, spawn_points[0], attach_to = vehicle_actor)
+camera_bp.set_attribute('image_size_x', '940')
+camera_bp.set_attribute('image_size_y', '940')
+camera_bp.set_attribute('sensor_tick', '0.5')
+
+camera_bp_transform = Transform(Location(x = 1.9, y = 0, z = 0.7))
+camera = world.spawn_actor(camera_bp, camera_bp_transform, attach_to = vehicle_actor)
+time.sleep(1)
 camera.listen(lambda image: image.save_to_disk('output/%06d.png' %image.frame_number))
 
 # #################################################
