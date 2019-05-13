@@ -65,6 +65,8 @@ print(location)
 
 while True:
     print(vehicle_actor.get_velocity())
+    x = vehicle_actor.get_velocity()
+    print(type(x))
     time.sleep(1)
 
 # my_map = world.get_map()
