@@ -3,6 +3,7 @@ from carla import Client, Transform, Rotation, Location
 import carla
 import random
 import time
+import math
 
 # starting proper work now
 
@@ -16,17 +17,6 @@ print('connected!') # DEBUG
 world = client.get_world()
 # bp of all actors
 blueprint_lib = world.get_blueprint_library()
-
-# #################################################
-# ADD SPEED LIMIT SIGN
-# actor_list = world.get_actors()
-# actor_transform = actor_list.filter('traffic.speed_limit.*')
-
-# speed_sign_bp = blueprint_lib.find('static.prop.streetsign01')
-# speed_sign_50_spawn = world.spawn_actor(speed_sign_bp, actor_transform[0])
-
-
-# #################################################
 
 vehicle_bp = blueprint_lib.find('vehicle.audi.tt')
 
@@ -46,7 +36,7 @@ print('DONE') # DEBUG
 camera_bp = blueprint_lib.find('sensor.camera.rgb')
 camera_bp.set_attribute('image_size_x', '940')
 camera_bp.set_attribute('image_size_y', '940')
-camera_bp.set_attribute('sensor_tick', '0.5')
+camera_bp.set_attribute('sensor_tick', '0.8')
 
 camera_bp_transform = Transform(Location(x = 1.9, y = 0, z = 0.7))
 camera = world.spawn_actor(camera_bp, camera_bp_transform, attach_to = vehicle_actor)
@@ -64,9 +54,16 @@ print(transform)
 print(location)
 
 while True:
-    print(vehicle_actor.get_velocity())
-    x = vehicle_actor.get_velocity()
-    print(type(x))
+
+    x_cord, y_cord, z_cord = vehicle_actor.get_velocity().x, vehicle_actor.get_velocity().y, vehicle_actor.get_velocity().z
+    print(carla.VehicleControl().steer)
+    print(carla.WheelPhysicsControl().steer_angle)
+    
+    # Calculate the magnitude of the vector - 
+    # output is in ms-1 
+    velocity = math.sqrt((x_cord**2)+(y_cord**2)+(z_cord**2))
+    print(velocity)
+
     time.sleep(1)
 
 # my_map = world.get_map()
