@@ -1,9 +1,11 @@
 from carla import Client, Transform, Rotation, Location
 
 import carla
+
 import random
 import time
 import math
+import sys
 
 # starting proper work now
 
@@ -18,7 +20,7 @@ world = client.get_world()
 # bp of all actors
 blueprint_lib = world.get_blueprint_library()
 
-vehicle_bp = blueprint_lib.find('vehicle.audi.tt')
+vehicle_bp = blueprint_lib.find('vehicle.tesla.model3')
 
 # adding spawn point for car as per coordinates on unreal engine
 spawn_points = world.get_map().get_spawn_points() 
@@ -31,17 +33,29 @@ time.sleep(2)
 print(vehicle_actor.get_location())
 print('DONE') # DEBUG
 
+# ##################################################
+# FILE HANDLING
+f = open('velocity_labels.csv', 'w', encoding= 'utf-8')
+
+# ###################################################
+
+def image_collector(image):
+    image.save_to_disk('output/%06d.png' %image.frame_number)
+    print('%06d, ' %image.frame_number + str(vehicle_actor.get_control().steer * 70), file = f)
+
 # #################################################
 # Add Camera 
 camera_bp = blueprint_lib.find('sensor.camera.rgb')
 camera_bp.set_attribute('image_size_x', '940')
 camera_bp.set_attribute('image_size_y', '940')
-camera_bp.set_attribute('sensor_tick', '0.8')
+camera_bp.set_attribute('sensor_tick', '1')
 
 camera_bp_transform = Transform(Location(x = 1.9, y = 0, z = 0.7))
 camera = world.spawn_actor(camera_bp, camera_bp_transform, attach_to = vehicle_actor)
 time.sleep(1)
-camera.listen(lambda image: image.save_to_disk('output/%06d.png' %image.frame_number))
+
+# camera.listen(lambda image: image.save_to_disk('output/%06d.png' %image.frame_number))
+camera.listen(lambda image: image_collector(image))
 
 # #################################################
 
@@ -53,18 +67,28 @@ transform = vehicle_actor.get_transform()
 print(transform)
 print(location)
 
+
 while True:
 
-    x_cord, y_cord, z_cord = vehicle_actor.get_velocity().x, vehicle_actor.get_velocity().y, vehicle_actor.get_velocity().z
-    print(carla.VehicleControl().steer)
-    print(carla.WheelPhysicsControl().steer_angle)
-    
-    # Calculate the magnitude of the vector - 
-    # output is in ms-1 
-    velocity = math.sqrt((x_cord**2)+(y_cord**2)+(z_cord**2))
-    print(velocity)
+    try:
+        x_cord, y_cord, z_cord = vehicle_actor.get_velocity().x, vehicle_actor.get_velocity().y, vehicle_actor.get_velocity().z
+        # print(carla.VehicleControl().steer)
+        print(vehicle_actor.get_control().steer * 70)
+        
+        # Calculate the magnitude of the vector - 
+        # output is in ms-1 
+        velocity = math.sqrt((x_cord**2)+(y_cord**2)+(z_cord**2))
+        # print('%06d'%image.frame_number,velocity, file = f)
+        print(velocity)
+        # print('%06d,'%image.frame_number,carla.WheelPhysicsControl().steer_angle, file = f)
 
-    time.sleep(1)
+        time.sleep(1)
+
+    except KeyboardInterrupt:
+        f.close()
+        print('Goodbye!')
+        sys.exit()
+
 
 # my_map = world.get_map()
 
