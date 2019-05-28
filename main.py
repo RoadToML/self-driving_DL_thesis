@@ -1,4 +1,5 @@
-from carla import Client, Transform, Rotation, Location
+from carla import Client, Transform, Rotation, Location, Waypoint
+from carla import LaneMarking
 
 import carla
 
@@ -36,12 +37,15 @@ print('DONE') # DEBUG
 # ##################################################
 # FILE HANDLING
 f = open('velocity_labels.csv', 'w', encoding= 'utf-8')
+f.write('image, velocity, steering_angle\n')
 
 # ###################################################
 
 def image_collector(image):
     image.save_to_disk('output/%06d.png' %image.frame_number)
-    print('%06d, ' %image.frame_number + str(vehicle_actor.get_control().steer * 70), file = f)
+    print('%06d,' %image.frame_number,\
+        math.sqrt((vehicle_actor.get_velocity().x ** 2) + (vehicle_actor.get_velocity().y **2 ) + (vehicle_actor.get_velocity().z ** 2)), ',',\
+        str(vehicle_actor.get_control().steer * 70), file = f)
 
 # #################################################
 # Add Camera 
@@ -82,7 +86,12 @@ while True:
         print(velocity)
         # print('%06d,'%image.frame_number,carla.WheelPhysicsControl().steer_angle, file = f)
 
+        # waypoint stuff test
+        print(Waypoint.lane_type)
+        print(LaneMarking)
+
         time.sleep(1)
+
 
     except KeyboardInterrupt:
         f.close()
