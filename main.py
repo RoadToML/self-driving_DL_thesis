@@ -18,11 +18,14 @@ client.load_world('/Game/Carla/Maps/single_left_bend')
 print('connected!') # DEBUG
 
 world = client.get_world()
+# ##################################################
 # bp of all actors
 blueprint_lib = world.get_blueprint_library()
 
 vehicle_bp = blueprint_lib.find('vehicle.tesla.model3')
+lane_invasion_sensor_bp = blueprint_lib.find('sensor.other.lane_invasion')
 
+# ##################################################
 # adding spawn point for car as per coordinates on unreal engine
 spawn_points = world.get_map().get_spawn_points() 
 
@@ -36,26 +39,39 @@ print('DONE') # DEBUG
 
 # ##################################################
 # FILE HANDLING
-f = open('velocity_labels.csv', 'w', encoding= 'utf-8')
-f.write('image, velocity, steering_angle\n')
+f = open('test.csv', 'a', encoding= 'utf-8')
+# column names = 'image, velocity, steering_angle, outcome
 
 # ###################################################
 
 def image_collector(image):
-    image.save_to_disk('output/%06d.png' %image.frame_number)
+    image.save_to_disk('output_2/%06d.png' %image.frame_number)
     print('%06d,' %image.frame_number,\
         math.sqrt((vehicle_actor.get_velocity().x ** 2) + (vehicle_actor.get_velocity().y **2 ) + (vehicle_actor.get_velocity().z ** 2)), ',',\
-        str(vehicle_actor.get_control().steer * 70), file = f)
+        str(vehicle_actor.get_control().steer * 70), ',',\
+        'bad', file = f)
+
+# #################################################
+
+def on_invasion(event):
+    lane_types = set(x.type for x in event.crossed_lane_markings)
+    text = ['%r' % str(x).split()[-1] for x in lane_types]
+    print(('Crossed line %s' % ' and '.join(text)))
 
 # #################################################
 # Add Camera 
 camera_bp = blueprint_lib.find('sensor.camera.rgb')
 camera_bp.set_attribute('image_size_x', '940')
 camera_bp.set_attribute('image_size_y', '940')
-camera_bp.set_attribute('sensor_tick', '1')
+camera_bp.set_attribute('sensor_tick', '0.03')
 
 camera_bp_transform = Transform(Location(x = 1.9, y = 0, z = 0.7))
 camera = world.spawn_actor(camera_bp, camera_bp_transform, attach_to = vehicle_actor)
+
+# attaching lane invasion sensor
+lane_invasion_sensor = world.spawn_actor(lane_invasion_sensor_bp, camera_bp_transform, attach_to = vehicle_actor)
+lane_invasion_sensor.listen(lambda event: on_invasion(event))
+
 time.sleep(1)
 
 # camera.listen(lambda image: image.save_to_disk('output/%06d.png' %image.frame_number))
@@ -85,10 +101,6 @@ while True:
         # print('%06d'%image.frame_number,velocity, file = f)
         print(velocity)
         # print('%06d,'%image.frame_number,carla.WheelPhysicsControl().steer_angle, file = f)
-
-        # waypoint stuff test
-        print(Waypoint.lane_type)
-        print(LaneMarking)
 
         time.sleep(1)
 
