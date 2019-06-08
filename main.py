@@ -22,7 +22,7 @@ world = client.get_world()
 # bp of all actors
 blueprint_lib = world.get_blueprint_library()
 
-vehicle_bp = blueprint_lib.find('vehicle.tesla.model3')
+vehicle_bp = blueprint_lib.find('vehicle.audi.tt')
 lane_invasion_sensor_bp = blueprint_lib.find('sensor.other.lane_invasion')
 
 # ##################################################
@@ -39,21 +39,23 @@ print('DONE') # DEBUG
 
 # ##################################################
 # FILE HANDLING
-f = open('test.csv', 'a', encoding= 'utf-8')
+f = open('velocity_labels.csv', 'a', encoding= 'utf-8')
 # column names = 'image, velocity, steering_angle, outcome
 
 # ###################################################
 
 def image_collector(image):
-    image.save_to_disk('output_2/%06d.png' %image.frame_number)
+    image.save_to_disk('output/%06d.png' %image.frame_number)
     print('%06d,' %image.frame_number,\
         math.sqrt((vehicle_actor.get_velocity().x ** 2) + (vehicle_actor.get_velocity().y **2 ) + (vehicle_actor.get_velocity().z ** 2)), ',',\
         str(vehicle_actor.get_control().steer * 70), ',',\
         'bad', file = f)
 
 # #################################################
+# function for lane invasion 
 
 def on_invasion(event):
+    print('-----') # DEBUG
     lane_types = set(x.type for x in event.crossed_lane_markings)
     text = ['%r' % str(x).split()[-1] for x in lane_types]
     print(('Crossed line %s' % ' and '.join(text)))
@@ -69,7 +71,7 @@ camera_bp_transform = Transform(Location(x = 1.9, y = 0, z = 0.7))
 camera = world.spawn_actor(camera_bp, camera_bp_transform, attach_to = vehicle_actor)
 
 # attaching lane invasion sensor
-lane_invasion_sensor = world.spawn_actor(lane_invasion_sensor_bp, camera_bp_transform, attach_to = vehicle_actor)
+lane_invasion_sensor = world.spawn_actor(lane_invasion_sensor_bp, Transform(), attach_to = vehicle_actor)
 lane_invasion_sensor.listen(lambda event: on_invasion(event))
 
 time.sleep(1)
