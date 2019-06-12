@@ -2,6 +2,7 @@ from keras.models import Model
 from keras.layers import Conv2D, MaxPooling2D, Dense, Activation, Flatten
 from keras.layers import LeakyReLU, Concatenate, Input
 from keras import optimizers
+from keras.utils import plot_model
 
 import keras
 import pandas as pd
@@ -105,3 +106,5 @@ print(f'''
     acc: {max(acc)}''')
 
 print(model.summary())
+
+plot_model(model, show_shapes=True, show_layer_names=False)
