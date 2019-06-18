@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 
 import os
 import time
+import pickle
 
 df = pd.read_csv('velocity_labels.csv',\
 names = ['image', 'velocity', 'steering_angle', 'outcome'],\
@@ -108,3 +109,8 @@ print(f'''
 print(model.summary())
 
 plot_model(model, show_shapes=True, show_layer_names=False)
+
+# Dump the model to the pickle file
+
+with open('model.pickle', 'wb') as output:
+    pickle.dump(model, output)
