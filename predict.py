@@ -15,6 +15,6 @@ test_img = np.array(test_img)
 test_input = test_img.reshape(-1, 940, 940, 3)
 print(test_input.shape)
 
-results = model.predict_on_batch([test_input,  np.array([14.0233432])])
+results = model.predict([test_input,  np.array([14.0233432])])
 
 print(results)

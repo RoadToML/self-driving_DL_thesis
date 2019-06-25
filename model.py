@@ -81,7 +81,7 @@ def create_model(X, Y, other_inp):
     # z = model.add(Dense(1164))
     # z = model.add(Dense(100))
     # z = model.add(Dense(50))
-    dense4 = Dense(10, activation='softmax')(concat1)
+    dense4 = Dense(10, activation='tanh')(concat1)
     #activ6 = Activation('softmax')(dense4)
 
     model = Model(inputs = [input1, input2], outputs = dense4)
