@@ -19,6 +19,11 @@ print('connected!') # DEBUG
 
 world = client.get_world()
 # ##################################################
+# Change weather for data collection
+# clearnNoon, ClearSunset
+#world.set_weather(carla.WeatherParameters.ClearSunset)
+
+# ##################################################
 # bp of all actors
 blueprint_lib = world.get_blueprint_library()
 
@@ -43,13 +48,14 @@ f = open('velocity_labels.csv', 'a', encoding= 'utf-8')
 # column names = 'image, velocity, steering_angle, outcome
 
 # ###################################################
+# collect images, speed, steering angels and write to file.
 
 def image_collector(image):
     image.save_to_disk('output/%06d.png' %image.frame_number)
     print('%06d,' %image.frame_number,\
-        math.sqrt((vehicle_actor.get_velocity().x ** 2) + (vehicle_actor.get_velocity().y **2 ) + (vehicle_actor.get_velocity().z ** 2)), ',',\
-        str(vehicle_actor.get_control().steer * 70), ',',\
-        'bad', file = f)
+        '%.8f' % math.sqrt((vehicle_actor.get_velocity().x ** 2) + (vehicle_actor.get_velocity().y **2 ) + (vehicle_actor.get_velocity().z ** 2)), ',',\
+        '%.8f' % vehicle_actor.get_control().steer, ',',\
+        'good', file = f)
 
 # #################################################
 # function for lane invasion 
@@ -77,8 +83,6 @@ lane_invasion_sensor.listen(lambda event: on_invasion(event))
 time.sleep(1)
 
 # camera.listen(lambda image: image.save_to_disk('output/%06d.png' %image.frame_number))
-camera.listen(lambda image: image_collector(image))
-
 # #################################################
 
 time.sleep(2)
@@ -89,6 +93,7 @@ transform = vehicle_actor.get_transform()
 print(transform)
 print(location)
 
+camera.listen(lambda image: image_collector(image))
 
 while True:
 

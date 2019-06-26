@@ -19,8 +19,11 @@ import pickle
 df = pd.read_csv('velocity_labels.csv',\
 names = ['image', 'velocity', 'steering_angle', 'outcome'],\
 converters = {'image': lambda x: str(x), 'outcome': lambda x: '1' if x.strip() == 'good' else '0',\
-                'steering_angle': lambda x: float(x)/70})
+                'steering_angle': lambda x: round(float(x)/70}, 8))
 
+df['normal_velocity'] = round(((df['velocity'] - min(df['velocity']))/ (max(df['velocity']) - min(df['velocity']))), 8)
+
+df.to_csv('normal_dataset.csv', encoding='utf-8', index=False)
 print (df.tail()) # DEBUG
 
 
@@ -28,13 +31,16 @@ print (df.tail()) # DEBUG
 
 training_data = []
 for img, angle, outcome, velocity in zip(df['image'], df['steering_angle'], df['outcome'], df['velocity']):
-    image = cv2.imread(f"output//{img}.png", 1)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    try:
+        image = cv2.imread(f"output//{img}.png", 1)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-    # plt.imshow(image)
-    # plt.show()
-    if outcome == '1':
-        training_data.append([image, angle, velocity])
+        # plt.imshow(image)
+        # plt.show()
+        if outcome == '1':
+            training_data.append([image, angle, velocity])
+    except cv2.error:
+        pass
 
 X = [img for img, label, velocity in training_data]
 Y = [label for img, label, velocity in training_data]
@@ -66,22 +72,22 @@ def create_model(X, Y, other_inp):
     activ3 = LeakyReLU()(conv3)
     pool3 = MaxPooling2D(pool_size=(2, 2))(activ3)
 
-    # z = model.add(Conv2D(8, (3, 3), strides=1))
-    # z = model.add(LeakyReLU())
-    # z = model.add(MaxPooling2D(pool_size=(2, 2)))
-    #
-    # z = model.add(Conv2D(4, (3, 3), strides=1))
-    # z = model.add(LeakyReLU())
-    # z = model.add(MaxPooling2D(pool_size=(2, 2)))
-    #
-    flat1 = Flatten()(pool3)
+    conv4 = Conv2D(8, (3, 3), strides=1)(pool3)
+    activ4 = LeakyReLU()(conv4)
+    pool4 = MaxPooling2D(pool_size=(2, 2))(activ4)
+    
+    conv5 = Conv2D(4, (3, 3), strides=1)(pool4)
+    activ5 = LeakyReLU()(conv5)
+    pool5 = MaxPooling2D(pool_size=(2, 2))(activ5)
+    
+    flat1 = Flatten()(pool5)
 
     input2 = Input(shape = (1, ))
     concat1 = Concatenate(axis=1)([flat1, input2])
-    # z = model.add(Dense(1164))
-    # z = model.add(Dense(100))
-    # z = model.add(Dense(50))
-    dense4 = Dense(10, activation='tanh')(concat1)
+    dense1 = Dense(1164, activation='tanh')(concat1)
+    dense2 = Dense(100, activation='tanh')(dense1)
+    dense3 = Dense(50, activation='tanh')(dense2)
+    dense4 = Dense(10, activation='tanh')(dense3)
     #activ6 = Activation('softmax')(dense4)
 
     model = Model(inputs = [input1, input2], outputs = dense4)
@@ -91,7 +97,7 @@ def create_model(X, Y, other_inp):
 
     optimizers.SGD(lr=0.003, momentum=0.002)
 
-    history = model.fit([X, other_inp], Y, batch_size= 20, epochs = 30, validation_split=0.2)
+    history = model.fit([X, other_inp], Y, batch_size= 20, epochs = 50, validation_split=0.2)
 
     return (history, model)
 
@@ -106,7 +112,7 @@ print(f'''
     mae: {max(mae)}
     acc: {max(acc)}''')
 
-print(model.summary())
+model.summary()
 
 plot_model(model, show_shapes=True, show_layer_names=False)
 
