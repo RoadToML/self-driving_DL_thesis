@@ -19,7 +19,7 @@ import pickle
 df = pd.read_csv('velocity_labels.csv',\
 names = ['image', 'velocity', 'steering_angle', 'outcome'],\
 converters = {'image': lambda x: str(x), 'outcome': lambda x: '1' if x.strip() == 'good' else '0',\
-                'steering_angle': lambda x: round(float(x)/70}, 8))
+                'steering_angle': lambda x: round(float(x)/70, 8)})
 
 df['normal_velocity'] = round(((df['velocity'] - min(df['velocity']))/ (max(df['velocity']) - min(df['velocity']))), 8)
 
