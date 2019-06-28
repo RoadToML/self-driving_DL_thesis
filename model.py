@@ -16,21 +16,34 @@ import os
 import time
 import pickle
 
+# ########################################################
+# init DF for training data
 df = pd.read_csv('velocity_labels.csv',\
 names = ['image', 'velocity', 'steering_angle', 'outcome'],\
 converters = {'image': lambda x: str(x), 'outcome': lambda x: '1' if x.strip() == 'good' else '0',\
                 'steering_angle': lambda x: round(float(x)/70, 8)})
 
 df['normal_velocity'] = round(((df['velocity'] - min(df['velocity']))/ (max(df['velocity']) - min(df['velocity']))), 8)
+df['normal_steering_angle'] = round(((df['steering_angle'] - min(df['steering_angle']))/ (max(df['steering_angle']) - min(df['steering_angle']))), 8)
 
+# #########################################################
+# Saving normalised training data to csv
 df.to_csv('normal_dataset.csv', encoding='utf-8', index=False)
 print (df.tail()) # DEBUG
 
+# ########################################################
+# init DF for test data
+test_df = pd.read_csv('test_labels.csv',\
+names = ['image', 'velocity', 'steering_angle', 'outcome'],\
+converters = {'image': lambda x: str(x), 'outcome': lambda x: '1' if x.strip() == 'good' else '0',\
+                'steering_angle': lambda x: round(float(x)/70, 8)})
 
+test_df['normal_velocity'] = round(((test_df['velocity'] - min(test_df['velocity']))/ (max(test_df['velocity']) - min(test_df['velocity']))), 8)
+test_df['normal_steering_angle'] = round(((test_df['steering_angle'] - min(test_df['steering_angle']))/ (max(test_df['steering_angle']) - min(test_df['steering_angle']))), 8)
+# ########################################################
 # Create training data labels and target
-
 training_data = []
-for img, angle, outcome, velocity in zip(df['image'], df['steering_angle'], df['outcome'], df['velocity']):
+for img, angle, outcome, velocity in zip(df['image'], df['steering_angle'], df['outcome'], df['normal_velocity']):
     try:
         image = cv2.imread(f"output//{img}.png", 1)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -39,6 +52,7 @@ for img, angle, outcome, velocity in zip(df['image'], df['steering_angle'], df['
         # plt.show()
         if outcome == '1':
             training_data.append([image, angle, velocity])
+
     except cv2.error:
         pass
 
@@ -51,7 +65,31 @@ Y = np.array(Y)
 other_inp = np.array(other_inp)
 print(other_inp.shape)
 
+# ########################################################
+# Create test data labels and target
+test_data = []
+for img, angle, outcome, velocity in zip(test_df['image'], test_df['steering_angle'], test_df['outcome'], test_df['normal_velocity']):
+    try:
+        test_image = cv2.imread(f"output//{img}.png", 1)
+        test_image = cv2.cvtColor(test_image, cv2.COLOR_BGR2RGB)
 
+        # plt.imshow(image)
+        # plt.show()
+        if outcome == '1':
+            test_data.append([image, angle, velocity])
+
+    except cv2.error:
+        pass
+
+test_X = [img for img, label, velocity in test_data]
+test_Y = [label for img, label, velocity in test_data]
+test_other_inp = [velocity for img, label, velocity in test_data]
+
+test_X = np.array(test_X).reshape(-1, 940,940,3)
+test_Y = np.array(test_Y)
+test_other_inp = np.array(other_inp)
+print(test_other_inp.shape)
+# ########################################################
 # Create Model
 def create_model(X, Y, other_inp):
     # model = Sequential()
@@ -75,19 +113,19 @@ def create_model(X, Y, other_inp):
     conv4 = Conv2D(8, (3, 3), strides=1)(pool3)
     activ4 = LeakyReLU()(conv4)
     pool4 = MaxPooling2D(pool_size=(2, 2))(activ4)
-    
+
     conv5 = Conv2D(4, (3, 3), strides=1)(pool4)
     activ5 = LeakyReLU()(conv5)
     pool5 = MaxPooling2D(pool_size=(2, 2))(activ5)
-    
+
     flat1 = Flatten()(pool5)
 
     input2 = Input(shape = (1, ))
     concat1 = Concatenate(axis=1)([flat1, input2])
     dense1 = Dense(1164, activation='tanh')(concat1)
-    dense2 = Dense(100, activation='tanh')(dense1)
-    dense3 = Dense(50, activation='tanh')(dense2)
-    dense4 = Dense(10, activation='tanh')(dense3)
+    dense2 = Dense(500, activation='tanh')(dense1)
+    dense3 = Dense(200, activation='tanh')(dense2)
+    dense4 = Dense(1, activation='tanh')(dense3)
     #activ6 = Activation('softmax')(dense4)
 
     model = Model(inputs = [input1, input2], outputs = dense4)
@@ -97,7 +135,7 @@ def create_model(X, Y, other_inp):
 
     optimizers.SGD(lr=0.003, momentum=0.002)
 
-    history = model.fit([X, other_inp], Y, batch_size= 20, epochs = 50, validation_split=0.2)
+    history = model.fit([X, other_inp], Y, batch_size= 40, epochs = 50, validation_data=([test_X, test_other_inp], test_Y))
 
     return (history, model)
 
