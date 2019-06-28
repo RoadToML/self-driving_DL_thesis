@@ -20,7 +20,7 @@ print('connected!') # DEBUG
 world = client.get_world()
 # ##################################################
 # Change weather for data collection
-# clearnNoon, ClearSunset
+# ClearSunset, Wet Sunset, Wet Noon
 #world.set_weather(carla.WeatherParameters.ClearSunset)
 
 # ##################################################
