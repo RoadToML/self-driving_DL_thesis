@@ -17,6 +17,11 @@ import time
 import pickle
 
 # ########################################################
+# PARAMETERS
+
+BS  = 14 # batch size
+
+# ########################################################
 # init DF for training data
 df = pd.read_csv('velocity_labels.csv',\
 names = ['image', 'velocity', 'steering_angle', 'outcome'],\
@@ -35,35 +40,34 @@ print (df.tail()) # DEBUG
 # init DF for test data
 test_df = pd.read_csv('test_labels.csv',\
 names = ['image', 'velocity', 'steering_angle', 'outcome'],\
-converters = {'image': lambda x: str(x), 'outcome': lambda x: '1' if x.strip() == 'good' else '0',\
+converters = {'image': lambda x: str(x).strip(), 'outcome': lambda x: '1' if x.strip() == 'good' else '0',\
                 'steering_angle': lambda x: round(float(x)/70, 8)})
 
 test_df['normal_velocity'] = round(((test_df['velocity'] - min(test_df['velocity']))/ (max(test_df['velocity']) - min(test_df['velocity']))), 8)
 test_df['normal_steering_angle'] = round(((test_df['steering_angle'] - min(test_df['steering_angle']))/ (max(test_df['steering_angle']) - min(test_df['steering_angle']))), 8)
 # ########################################################
 # Create training data labels and target
-training_data = []
-for img, angle, outcome, velocity in zip(df['image'], df['steering_angle'], df['outcome'], df['normal_velocity']):
-    try:
-        image = cv2.imread(f"output//{img}.png", 1)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+#training_data = []
+def training_gen(X, velocity, label):
 
-        # plt.imshow(image)
-        # plt.show()
-        if outcome == '1':
-            training_data.append([image, angle, velocity])
+    while True:
+        for img, velocity, angle in zip(X, velocity, label):
+            try:
 
-    except cv2.error:
-        pass
+                image = cv2.imread(f"output//{img}.png", 1)
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-X = [img for img, label, velocity in training_data]
-Y = [label for img, label, velocity in training_data]
-other_inp = [velocity for img, label, velocity in training_data]
+                # plt.imshow(image)
+                # plt.show()
 
-X = np.array(X).reshape(-1, 940,940,3)
-Y = np.array(Y)
-other_inp = np.array(other_inp)
-print(other_inp.shape)
+                X = np.array(image).reshape(-1, 940,940,3)
+                Y = np.array([angle])
+                other_inp = np.array([velocity])
+
+                yield [X, other_inp], [Y]
+
+            except cv2.error:
+                pass
 
 # ########################################################
 # Create test data labels and target
@@ -87,12 +91,14 @@ test_other_inp = [velocity for img, label, velocity in test_data]
 
 test_X = np.array(test_X).reshape(-1, 940,940,3)
 test_Y = np.array(test_Y)
-test_other_inp = np.array(other_inp)
+test_other_inp = np.array(test_other_inp)
 print(test_other_inp.shape)
 # ########################################################
 # Create Model
-def create_model(X, Y, other_inp):
+def create_model(img, velocity, angle):
     # model = Sequential()
+
+    print(img.head(), velocity.head(), angle.head())
 
     input1 = Input(shape=(940,940,3))
 
@@ -135,19 +141,23 @@ def create_model(X, Y, other_inp):
 
     optimizers.SGD(lr=0.003, momentum=0.002)
 
-    history = model.fit([X, other_inp], Y, batch_size= 40, epochs = 50, validation_data=([test_X, test_other_inp], test_Y))
+    #history = model.fit([X, other_inp], Y, batch_size= 40, epochs = 50, validation_data=([test_X, test_other_inp], test_Y))
+    history = model.fit_generator(training_gen(img, velocity, angle),\
+            steps_per_epoch=32, epochs=50, \
+            validation_data=([test_X, test_other_inp], test_Y))
+
 
     return (history, model)
 
-history, model = create_model(X, Y, other_inp)
+history, model = create_model(df['image'], df['velocity'], df['steering_angle'])
 
 mse = history.history['mean_squared_error']
 mae = history.history['mean_absolute_error']
 acc = history.history['acc']
 
 print(f'''
-    mse: {max(mse)}
-    mae: {max(mae)}
+    mse: {min(mse)}
+    mae: {min(mae)}
     acc: {max(acc)}''')
 
 model.summary()
