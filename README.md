@@ -10,10 +10,11 @@ Stuff to do:
 + ~~add custom maps in CARLA~~
 	+ need to add more maps
 + ~~add agents in CARLA~~
-+ Collect training data from CARLA
-	+ identify the required training attributes
++ ~~Collect training data from CARLA~~
+	+ ~~identify the required training attributes~~
+	+ collect the right amount of training  and test data
 + Create appropriate R-CNN model (or other)
-  + possible requires 2 models with a seperate controller. 
+  + ~~possible requires 2 models with a seperate controller.~~
 + Figure out weight distributions for different data types
 + simulate 
 + ???
