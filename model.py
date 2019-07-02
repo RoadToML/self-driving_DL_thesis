@@ -16,17 +16,14 @@ import os
 import time
 import pickle
 
-# ########################################################
-# PARAMETERS
-
-BS  = 14 # batch size
 
 # ########################################################
 # init DF for training data
 df = pd.read_csv('velocity_labels.csv',\
 names = ['image', 'velocity', 'steering_angle', 'outcome'],\
 converters = {'image': lambda x: str(x), 'outcome': lambda x: '1' if x.strip() == 'good' else '0',\
-                'steering_angle': lambda x: round(float(x)/70, 8)})
+              'steering_angle': lambda x: round(float(x)/70, 8),\
+              'velocity': lambda x: round(float(x.strip()), 8)})
 
 df['normal_velocity'] = round(((df['velocity'] - min(df['velocity']))/ (max(df['velocity']) - min(df['velocity']))), 8)
 df['normal_steering_angle'] = round(((df['steering_angle'] - min(df['steering_angle']))/ (max(df['steering_angle']) - min(df['steering_angle']))), 8)
@@ -41,30 +38,51 @@ print (df.tail()) # DEBUG
 test_df = pd.read_csv('test_labels.csv',\
 names = ['image', 'velocity', 'steering_angle', 'outcome'],\
 converters = {'image': lambda x: str(x).strip(), 'outcome': lambda x: '1' if x.strip() == 'good' else '0',\
-                'steering_angle': lambda x: round(float(x)/70, 8)})
+                'steering_angle': lambda x: round(float(x)/70, 8),\
+                'velocity': lambda x: round(float(x.strip()), 8)})
 
 test_df['normal_velocity'] = round(((test_df['velocity'] - min(test_df['velocity']))/ (max(test_df['velocity']) - min(test_df['velocity']))), 8)
 test_df['normal_steering_angle'] = round(((test_df['steering_angle'] - min(test_df['steering_angle']))/ (max(test_df['steering_angle']) - min(test_df['steering_angle']))), 8)
+
+# ########################################################
+# PARAMETERS
+
+BS = 40 # batch size
+batch_per_epoch = np.ceil(len(os.listdir('output')) / BS).astype(int)
+epochs = 1000
+alpha = 0.01
+
 # ########################################################
 # Create training data labels and target
 #training_data = []
-def training_gen(X, velocity, label):
+def training_gen():
 
     while True:
-        for img, velocity, angle in zip(X, velocity, label):
+        training_data = []
+        for img, velocity, angle, outcome, normal_v, normal_angle in df.values:
             try:
+                if len(training_data) != BS:
 
-                image = cv2.imread(f"output//{img}.png", 1)
-                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                    image = cv2.imread(f"output/{img}.png", 1)
+                    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-                # plt.imshow(image)
-                # plt.show()
+                    # plt.imshow(image)
+                    # plt.show()
+                    training_data.append([image, angle, normal_v])
 
-                X = np.array(image).reshape(-1, 940,940,3)
-                Y = np.array([angle])
-                other_inp = np.array([velocity])
+                else:
+                    X = [image for image, angle, normal_v in training_data]
+                    other_inp = [image for image, angle, normal_v in training_data]
+                    Y = [image for image, angle, normal_v in training_data]
 
-                yield [X, other_inp], [Y]
+                    training_data = []
+
+                    X = np.array(image).reshape(-1, 940,940,3)
+                    Y = np.array([angle])
+                    other_inp = np.array([velocity])
+
+                    yield [X, other_inp], [Y]
+
 
             except cv2.error:
                 pass
@@ -93,35 +111,33 @@ test_X = np.array(test_X).reshape(-1, 940,940,3)
 test_Y = np.array(test_Y)
 test_other_inp = np.array(test_other_inp)
 print(test_other_inp.shape)
+
 # ########################################################
 # Create Model
-def create_model(img, velocity, angle):
+def create_model():
     # model = Sequential()
-
-    print(img.head(), velocity.head(), angle.head())
-
     input1 = Input(shape=(940,940,3))
 
     # model.add(Flatten(input_shape = (940,940,3)))
     conv1 = Conv2D(20, (5, 5), strides=(2, 2))(input1)
     #conv1 = model.add(Conv2D(20, (5, 5), strides=(2, 2), input_shape = (940,940,3)))
-    activ1 =LeakyReLU()(conv1)
+    activ1 =LeakyReLU(alpha=alpha)(conv1)
     pool1 =MaxPooling2D(pool_size=(2, 2))(activ1)
 
     conv2 = Conv2D(16, (5, 5), strides=(2, 2))(pool1)
-    activ2 =LeakyReLU()(conv2)
+    activ2 =LeakyReLU(alpha=alpha)(conv2)
     pool2 = MaxPooling2D(pool_size=(2, 2))(activ2)
 
     conv3 = Conv2D(12, (5, 5), strides=(2, 2))(pool2)
-    activ3 = LeakyReLU()(conv3)
+    activ3 = LeakyReLU(alpha=alpha)(conv3)
     pool3 = MaxPooling2D(pool_size=(2, 2))(activ3)
 
     conv4 = Conv2D(8, (3, 3), strides=1)(pool3)
-    activ4 = LeakyReLU()(conv4)
+    activ4 = LeakyReLU(alpha=alpha)(conv4)
     pool4 = MaxPooling2D(pool_size=(2, 2))(activ4)
 
     conv5 = Conv2D(4, (3, 3), strides=1)(pool4)
-    activ5 = LeakyReLU()(conv5)
+    activ5 = LeakyReLU(alpha=alpha)(conv5)
     pool5 = MaxPooling2D(pool_size=(2, 2))(activ5)
 
     flat1 = Flatten()(pool5)
@@ -142,14 +158,14 @@ def create_model(img, velocity, angle):
     optimizers.SGD(lr=0.003, momentum=0.002)
 
     #history = model.fit([X, other_inp], Y, batch_size= 40, epochs = 50, validation_data=([test_X, test_other_inp], test_Y))
-    history = model.fit_generator(training_gen(img, velocity, angle),\
-            steps_per_epoch=32, epochs=50, \
+    history = model.fit_generator(training_gen(),\
+            steps_per_epoch=batch_per_epoch, epochs=epochs, \
             validation_data=([test_X, test_other_inp], test_Y))
 
 
     return (history, model)
 
-history, model = create_model(df['image'], df['velocity'], df['steering_angle'])
+history, model = create_model()
 
 mse = history.history['mean_squared_error']
 mae = history.history['mean_absolute_error']
