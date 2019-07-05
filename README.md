@@ -8,13 +8,13 @@ Stuff to do:
 
 + ~~init CARLA environment~~
 + ~~add custom maps in CARLA~~
-	+ need to add more maps
+	+ ~~need to add more maps~~
 + ~~add agents in CARLA~~
 + ~~Collect training data from CARLA~~
 	+ ~~identify the required training attributes~~
-	+ collect the right amount of training  and test data
+	+ ~~collect the right amount of training  and test data~~
 + Create appropriate R-CNN model (or other)
-  + ~~possible requires 2 models with a seperate controller.~~
+  + ~~possibly requires 2 models with a seperate controller.~~
 + Figure out weight distributions for different data types
 + simulate 
 + ???
