@@ -20,8 +20,8 @@ print('connected!') # DEBUG
 world = client.get_world()
 # ##################################################
 # Change weather for data collection
-# ClearSunset, Wet Sunset, Wet Noon
-#world.set_weather(carla.WeatherParameters.ClearSunset)
+# ClearNoon, ClearSunset, WetSunset, WetNoon
+world.set_weather(carla.WeatherParameters.WetSunset)
 
 # ##################################################
 # bp of all actors
@@ -44,15 +44,16 @@ print('DONE') # DEBUG
 
 # ##################################################
 # FILE HANDLING
-f = open('velocity_labels.csv', 'a', encoding= 'utf-8')
+f = open('test_labels-2.csv', 'a', encoding= 'utf-8')
 # column names = 'image, velocity, steering_angle, outcome
 
 # ###################################################
 # collect images, speed, steering angels and write to file.
 
 def image_collector(image):
-    image.save_to_disk('output/%06d.png' %image.frame_number)
-    print('%06d,' %image.frame_number,\
+    rand_num = random.randint(0, 100000000)
+    image.save_to_disk('test-2/%d.png' %rand_num)
+    print('%d,' %rand_num,\
         '%.8f' % math.sqrt((vehicle_actor.get_velocity().x ** 2) + (vehicle_actor.get_velocity().y **2 ) + (vehicle_actor.get_velocity().z ** 2)), ',',\
         '%.8f' % vehicle_actor.get_control().steer, ',',\
         'good', file = f)
@@ -70,7 +71,7 @@ def on_invasion(event):
 # Add Camera 
 camera_bp = blueprint_lib.find('sensor.camera.rgb')
 camera_bp.set_attribute('image_size_x', '940')
-camera_bp.set_attribute('image_size_y', '940')
+camera_bp.set_attribute('image_size_y', '500')
 camera_bp.set_attribute('sensor_tick', '0.03')
 
 camera_bp_transform = Transform(Location(x = 1.9, y = 0, z = 0.7))
@@ -81,6 +82,8 @@ lane_invasion_sensor = world.spawn_actor(lane_invasion_sensor_bp, Transform(), a
 lane_invasion_sensor.listen(lambda event: on_invasion(event))
 
 time.sleep(1)
+
+camera.listen(lambda image: image_collector(image))
 
 # camera.listen(lambda image: image.save_to_disk('output/%06d.png' %image.frame_number))
 # #################################################
@@ -93,7 +96,7 @@ transform = vehicle_actor.get_transform()
 print(transform)
 print(location)
 
-camera.listen(lambda image: image_collector(image))
+
 
 while True:
 
