@@ -4,3 +4,6 @@ model.pickle
 test_images/
 *.csv
 *.png
+training_images/
+small_training_images/
+small_test_images/
