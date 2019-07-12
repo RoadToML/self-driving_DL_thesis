@@ -27,7 +27,7 @@ for img, velocity, angle in zip(df['image'], df['normal_velocity'], df['steering
         # test_img = test_img.flatten()
 
         if predict:
-            test_input = test_img.reshape(-1, 940, 940, 3)
+            test_input = test_img.reshape(-1, 940, 500, 3)
 
             results = model.predict([test_input,  np.array([velocity])])
 
@@ -44,7 +44,7 @@ if not predict:
     test_Y = [label for img, label, velocity in evaluate_data]
     test_other_inp = [velocity for img, label, velocity in evaluate_data]
 
-    test_X = np.array(test_X).reshape(-1, 940,940,3)
+    test_X = np.array(test_X).reshape(-1, 940,500,3)
     test_Y = np.array(test_Y)
     test_other_inp = np.array(test_other_inp)
 

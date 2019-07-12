@@ -8,9 +8,6 @@ import keras
 import pandas as pd
 import numpy as np
 import cv2
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
 
 import os
 import time
@@ -47,14 +44,16 @@ test_df['normal_steering_angle'] = round(((test_df['steering_angle'] - min(test_
 # ########################################################
 # PARAMETERS
 
-BS = 40 # batch size
-batch_per_epoch = np.ceil(len(os.listdir('output')) / BS).astype(int)
-epochs = 1000
+BS = 400 # batch size
+batch_per_epoch = np.ceil(len(df['image']) / BS).astype(int)
+epochs = 600
 alpha = 0.01
+lr = 0.003
+mom = 0.002
 
 # ########################################################
 # Create training data labels and target
-#training_data = []
+
 def training_gen():
 
     while True:
@@ -63,7 +62,8 @@ def training_gen():
             try:
                 if len(training_data) != BS:
 
-                    image = cv2.imread(f"output/{img}.png", 1)
+                    image = cv2.imread(f"small_training_images/{img}.png", 1)
+                    #image = cv2.resize(image, (400,400))
                     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
                     # plt.imshow(image)
@@ -77,7 +77,7 @@ def training_gen():
 
                     training_data = []
 
-                    X = np.array(image).reshape(-1, 940,940,3)
+                    X = np.array(image).reshape(-1, 400,400,3)
                     Y = np.array([angle])
                     other_inp = np.array([velocity])
 
@@ -92,13 +92,14 @@ def training_gen():
 test_data = []
 for img, angle, outcome, velocity in zip(test_df['image'], test_df['steering_angle'], test_df['outcome'], test_df['normal_velocity']):
     try:
-        test_image = cv2.imread(f"output//{img}.png", 1)
+        test_image = cv2.imread(f"small_test_images/{img}.png", 1)
+        #test_image = cv2.resize(test_image, (400,400))
         test_image = cv2.cvtColor(test_image, cv2.COLOR_BGR2RGB)
 
         # plt.imshow(image)
         # plt.show()
         if outcome == '1':
-            test_data.append([image, angle, velocity])
+            test_data.append([test_image, angle, velocity])
 
     except cv2.error:
         pass
@@ -107,7 +108,7 @@ test_X = [img for img, label, velocity in test_data]
 test_Y = [label for img, label, velocity in test_data]
 test_other_inp = [velocity for img, label, velocity in test_data]
 
-test_X = np.array(test_X).reshape(-1, 940,940,3)
+test_X = np.array(test_X).reshape(-1, 400,400,3)
 test_Y = np.array(test_Y)
 test_other_inp = np.array(test_other_inp)
 print(test_other_inp.shape)
@@ -116,7 +117,7 @@ print(test_other_inp.shape)
 # Create Model
 def create_model():
     # model = Sequential()
-    input1 = Input(shape=(940,940,3))
+    input1 = Input(shape=(400,400,3))
 
     # model.add(Flatten(input_shape = (940,940,3)))
     conv1 = Conv2D(20, (5, 5), strides=(2, 2))(input1)
@@ -134,16 +135,17 @@ def create_model():
 
     conv4 = Conv2D(8, (3, 3), strides=1)(pool3)
     activ4 = LeakyReLU(alpha=alpha)(conv4)
-    pool4 = MaxPooling2D(pool_size=(2, 2))(activ4)
+    pool4 = MaxPooling2D(pool_size=(1, 1))(activ4)
 
     conv5 = Conv2D(4, (3, 3), strides=1)(pool4)
     activ5 = LeakyReLU(alpha=alpha)(conv5)
-    pool5 = MaxPooling2D(pool_size=(2, 2))(activ5)
+    pool5 = MaxPooling2D(pool_size=(1, 1))(activ5)
 
     flat1 = Flatten()(pool5)
 
     input2 = Input(shape = (1, ))
     concat1 = Concatenate(axis=1)([flat1, input2])
+
     dense1 = Dense(1164, activation='tanh')(concat1)
     dense2 = Dense(500, activation='tanh')(dense1)
     dense3 = Dense(200, activation='tanh')(dense2)
@@ -155,7 +157,7 @@ def create_model():
     model.compile(loss='sparse_categorical_crossentropy',
     metrics=['accuracy', 'mae', 'mse'], optimizer='sgd')
 
-    optimizers.SGD(lr=0.003, momentum=0.002)
+    optimizers.SGD(lr=lr, momentum=mom)
 
     #history = model.fit([X, other_inp], Y, batch_size= 40, epochs = 50, validation_data=([test_X, test_other_inp], test_Y))
     history = model.fit_generator(training_gen(),\
