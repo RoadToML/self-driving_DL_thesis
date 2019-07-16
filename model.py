@@ -4,6 +4,10 @@ from keras.layers import LeakyReLU, Concatenate, Input
 from keras import optimizers
 from keras.utils import plot_model
 
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+
 import keras
 import pandas as pd
 import numpy as np
@@ -44,12 +48,12 @@ test_df['normal_steering_angle'] = round(((test_df['steering_angle'] - min(test_
 # ########################################################
 # PARAMETERS
 
-BS = 400 # batch size
+BS = 600 # batch size
 batch_per_epoch = np.ceil(len(df['image']) / BS).astype(int)
-epochs = 600
+epochs = 100
 alpha = 0.01
-lr = 0.003
-mom = 0.002
+lr = 0.00001
+mom = 0.00002
 
 # ########################################################
 # Create training data labels and target
@@ -129,19 +133,19 @@ def create_model():
     activ2 =LeakyReLU(alpha=alpha)(conv2)
     pool2 = MaxPooling2D(pool_size=(2, 2))(activ2)
 
-    conv3 = Conv2D(12, (5, 5), strides=(2, 2))(pool2)
-    activ3 = LeakyReLU(alpha=alpha)(conv3)
-    pool3 = MaxPooling2D(pool_size=(2, 2))(activ3)
+    # conv3 = Conv2D(12, (5, 5), strides=(2, 2))(pool2)
+    # activ3 = LeakyReLU(alpha=alpha)(conv3)
+    # pool3 = MaxPooling2D(pool_size=(2, 2))(activ3)
 
-    conv4 = Conv2D(8, (3, 3), strides=1)(pool3)
-    activ4 = LeakyReLU(alpha=alpha)(conv4)
-    pool4 = MaxPooling2D(pool_size=(1, 1))(activ4)
+    # conv4 = Conv2D(8, (3, 3), strides=1)(pool3)
+    # activ4 = LeakyReLU(alpha=alpha)(conv4)
+    # pool4 = MaxPooling2D(pool_size=(1, 1))(activ4)
 
-    conv5 = Conv2D(4, (3, 3), strides=1)(pool4)
-    activ5 = LeakyReLU(alpha=alpha)(conv5)
-    pool5 = MaxPooling2D(pool_size=(1, 1))(activ5)
+    # conv5 = Conv2D(4, (3, 3), strides=1)(pool4)
+    # activ5 = LeakyReLU(alpha=alpha)(conv5)
+    # pool5 = MaxPooling2D(pool_size=(1, 1))(activ5)
 
-    flat1 = Flatten()(pool5)
+    flat1 = Flatten()(pool2)
 
     input2 = Input(shape = (1, ))
     concat1 = Concatenate(axis=1)([flat1, input2])
@@ -154,7 +158,7 @@ def create_model():
 
     model = Model(inputs = [input1, input2], outputs = dense4)
 
-    model.compile(loss='sparse_categorical_crossentropy',
+    model.compile(loss='kullback_leibler_divergence',
     metrics=['accuracy', 'mae', 'mse'], optimizer='sgd')
 
     optimizers.SGD(lr=lr, momentum=mom)
@@ -166,12 +170,14 @@ def create_model():
 
 
     return (history, model)
-
+# ############################################################
+# Call Function
 history, model = create_model()
 
 mse = history.history['mean_squared_error']
 mae = history.history['mean_absolute_error']
 acc = history.history['acc']
+loss = history.history['loss']
 
 print(f'''
     mse: {min(mse)}
@@ -186,3 +192,7 @@ plot_model(model, show_shapes=True, show_layer_names=False)
 
 with open('model.pickle', 'wb') as output:
     pickle.dump(model, output)
+
+
+loss_graph = plt.plot(loss)
+plt.show()
