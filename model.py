@@ -16,7 +16,7 @@ import cv2
 import os
 import time
 import pickle
-
+import random
 
 # ########################################################
 # init DF for training data
@@ -49,11 +49,12 @@ test_df['normal_steering_angle'] = round(((test_df['steering_angle'] - min(test_
 # PARAMETERS
 
 BS = 600 # batch size
+validation_split = 0.01
 batch_per_epoch = np.ceil(len(df['image']) / BS).astype(int)
 epochs = 100
 alpha = 0.01
-lr = 0.00001
-mom = 0.00002
+lr = 0.000001
+mom = 0.000002
 
 # ########################################################
 # Create training data labels and target
@@ -94,9 +95,16 @@ def training_gen():
 # ########################################################
 # Create test data labels and target
 test_data = []
-for img, angle, outcome, velocity in zip(test_df['image'], test_df['steering_angle'], test_df['outcome'], test_df['normal_velocity']):
+_iterator_obj = list(zip(df['image'], df['steering_angle'], df['outcome'], test_df['normal_velocity']))
+random.shuffle(_iterator_obj)
+
+for img, angle, outcome, velocity in _iterator_obj:
     try:
-        test_image = cv2.imread(f"small_test_images/{img}.png", 1)
+
+        if len(test_data) == int(len(df['image']) * validation_split):
+            break
+
+        test_image = cv2.imread(f"small_training_images/{img}.png", 1)
         #test_image = cv2.resize(test_image, (400,400))
         test_image = cv2.cvtColor(test_image, cv2.COLOR_BGR2RGB)
 
@@ -124,28 +132,28 @@ def create_model():
     input1 = Input(shape=(400,400,3))
 
     # model.add(Flatten(input_shape = (940,940,3)))
-    conv1 = Conv2D(20, (5, 5), strides=(2, 2))(input1)
+    conv1 = Conv2D(36, (3, 3), strides=(2, 2))(input1)
     #conv1 = model.add(Conv2D(20, (5, 5), strides=(2, 2), input_shape = (940,940,3)))
     activ1 =LeakyReLU(alpha=alpha)(conv1)
     pool1 =MaxPooling2D(pool_size=(2, 2))(activ1)
 
-    conv2 = Conv2D(16, (5, 5), strides=(2, 2))(pool1)
+    conv2 = Conv2D(25, (3, 3), strides=(2, 2))(pool1)
     activ2 =LeakyReLU(alpha=alpha)(conv2)
     pool2 = MaxPooling2D(pool_size=(2, 2))(activ2)
 
-    # conv3 = Conv2D(12, (5, 5), strides=(2, 2))(pool2)
-    # activ3 = LeakyReLU(alpha=alpha)(conv3)
-    # pool3 = MaxPooling2D(pool_size=(2, 2))(activ3)
+    conv3 = Conv2D(16, (3, 3), strides=(2, 2))(pool2)
+    activ3 = LeakyReLU(alpha=alpha)(conv3)
+    pool3 = MaxPooling2D(pool_size=(2, 2))(activ3)
 
-    # conv4 = Conv2D(8, (3, 3), strides=1)(pool3)
-    # activ4 = LeakyReLU(alpha=alpha)(conv4)
-    # pool4 = MaxPooling2D(pool_size=(1, 1))(activ4)
+    conv4 = Conv2D(9, (3, 3), strides=1)(pool3)
+    activ4 = LeakyReLU(alpha=alpha)(conv4)
+    pool4 = MaxPooling2D(pool_size=(1, 1))(activ4)
 
-    # conv5 = Conv2D(4, (3, 3), strides=1)(pool4)
-    # activ5 = LeakyReLU(alpha=alpha)(conv5)
-    # pool5 = MaxPooling2D(pool_size=(1, 1))(activ5)
+    conv5 = Conv2D(4, (3, 3), strides=1)(pool4)
+    activ5 = LeakyReLU(alpha=alpha)(conv5)
+    pool5 = MaxPooling2D(pool_size=(1, 1))(activ5)
 
-    flat1 = Flatten()(pool2)
+    flat1 = Flatten()(pool5)
 
     input2 = Input(shape = (1, ))
     concat1 = Concatenate(axis=1)([flat1, input2])
@@ -158,14 +166,16 @@ def create_model():
 
     model = Model(inputs = [input1, input2], outputs = dense4)
 
-    model.compile(loss='kullback_leibler_divergence',
+    model.compile(loss='mean_squared_error',
     metrics=['accuracy', 'mae', 'mse'], optimizer='sgd')
 
     optimizers.SGD(lr=lr, momentum=mom)
+    #optimizers.RMSprop(lr=lr)
 
     #history = model.fit([X, other_inp], Y, batch_size= 40, epochs = 50, validation_data=([test_X, test_other_inp], test_Y))
-    history = model.fit_generator(training_gen(),\
-            steps_per_epoch=batch_per_epoch, epochs=epochs, \
+    history = model.fit_generator(training_gen(),
+            steps_per_epoch=batch_per_epoch,
+            epochs=epochs,
             validation_data=([test_X, test_other_inp], test_Y))
 
 

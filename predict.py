@@ -22,6 +22,7 @@ converters = {'image': lambda x: str(x),\
 df['normal_velocity'] = round(((df['velocity'] - min(df['velocity']))/ (max(df['velocity']) - min(df['velocity']))), 8)
 
 predicted_angle=[]
+actual_angle = []
 evaluate_data = []
 for img, velocity, angle in zip(df['image'], df['normal_velocity'], df['steering_angle']):
 
@@ -36,6 +37,7 @@ for img, velocity, angle in zip(df['image'], df['normal_velocity'], df['steering
 
             results = model.predict([test_input,  np.array([velocity])])
             predicted_angle.append(results[0][0])
+            actual_angle.append(angle)
 
             print(img, results, angle)
 
@@ -59,6 +61,8 @@ if not predict:
     print(model.metrics)
 
 else:
-    plot = plt.plot(predicted_angle)
+    plot1 = plt.plot(predicted_angle)
+    plot2 = plt.plot(actual_angle)
+    plt.setp(plot2, color='r')
 
     plt.show()
