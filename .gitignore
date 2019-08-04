@@ -7,3 +7,6 @@ test_images/
 training_images/
 small_training_images/
 small_test_images/
+smaller_training_images/
+smaller_test_images/
+results/
